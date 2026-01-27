@@ -18,6 +18,7 @@ class ToolbarManager {
         this.opacity = 1.0;
         this.fontSize = 16;
         this.pdfExporter = new PDFExporter(canvasManager);
+        this.shareManager = new ShareManager(canvasManager);
 
         this.init();
     }
@@ -99,6 +100,11 @@ class ToolbarManager {
         const pdfBtn = document.getElementById('pdfBtn');
         pdfBtn.addEventListener('click', () => {
             this.pdfExporter.exportCanvasToPDF();
+        });
+
+        const shareBtn = document.getElementById('shareBtn');
+        shareBtn.addEventListener('click', () => {
+            this.shareManager.showShareDialog();
         });
 
         document.addEventListener('keydown', (e) => {

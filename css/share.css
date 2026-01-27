@@ -1,0 +1,217 @@
+/* 공유 다이얼로그 */
+.share-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.share-dialog-content {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 400px;
+    animation: slideUp 0.3s ease-out;
+}
+
+.share-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.share-dialog-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+}
+
+.share-dialog-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.share-dialog-close:hover {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.share-options {
+    padding: 12px;
+}
+
+.share-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 16px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 15px;
+}
+
+.share-option:last-child {
+    margin-bottom: 0;
+}
+
+.share-option:hover {
+    background-color: #e9ecef;
+    transform: translateX(4px);
+}
+
+.share-option:active {
+    transform: translateX(4px) scale(0.98);
+}
+
+.share-icon {
+    font-size: 24px;
+    margin-right: 12px;
+    min-width: 32px;
+    text-align: center;
+}
+
+.share-text {
+    color: #333;
+    font-weight: 500;
+}
+
+/* 토스트 메시지 */
+.toast {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    z-index: 10000;
+    transition: bottom 0.3s ease-out, opacity 0.3s ease-out;
+    opacity: 0;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.toast.show {
+    bottom: 30px;
+    opacity: 1;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 모바일 최적화 */
+@media (max-width: 480px) {
+    .share-dialog-content {
+        width: 95%;
+        max-width: none;
+    }
+
+    .share-dialog-header {
+        padding: 16px;
+    }
+
+    .share-dialog-header h3 {
+        font-size: 18px;
+    }
+
+    .share-options {
+        padding: 8px;
+    }
+
+    .share-option {
+        padding: 14px;
+    }
+
+    .toast {
+        bottom: -80px;
+        font-size: 14px;
+        padding: 12px 20px;
+    }
+
+    .toast.show {
+        bottom: 20px;
+    }
+}
+
+/* 다크 모드 지원 (선택 사항) */
+@media (prefers-color-scheme: dark) {
+    .share-dialog-content {
+        background-color: #2d2d2d;
+    }
+
+    .share-dialog-header {
+        border-bottom-color: #444;
+    }
+
+    .share-dialog-header h3 {
+        color: #f0f0f0;
+    }
+
+    .share-dialog-close {
+        color: #aaa;
+    }
+
+    .share-dialog-close:hover {
+        background-color: #444;
+        color: #f0f0f0;
+    }
+
+    .share-option {
+        background-color: #3a3a3a;
+    }
+
+    .share-option:hover {
+        background-color: #444;
+    }
+
+    .share-text {
+        color: #f0f0f0;
+    }
+}

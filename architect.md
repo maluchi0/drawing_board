@@ -74,6 +74,11 @@ app.js (Entry Point)
    │      ├──> 페이지 로딩 및 캡처
    │      └──> PDF 생성 및 다운로드
    │
+   ├──> ShareManager
+   │      ├──> URL 복사 기능
+   │      ├──> Canvas 이미지 캡처
+   │      └──> 소셜 미디어 공유
+   │
    └──> DrawingTools
           ├──> PenTool
           ├──> EraserTool
@@ -247,6 +252,58 @@ app.js (Entry Point)
 5. 캡처된 이미지를 jsPDF로 PDF 변환
 6. PDF 파일 다운로드
 
+### 4.7 ShareManager 클래스 (수정)
+
+**책임**
+- Canvas를 이미지로 캡처
+- 이미지를 외부 호스팅 서비스에 업로드
+- 소셜 미디어 공유 링크 생성
+- 로컬 및 인터넷 환경 모두 지원
+- 현재 작업 중인 이미지가 보이도록 공유
+
+**주요 메서드**
+- `captureCanvas()`: Canvas를 이미지(Blob 또는 Base64)로 캡처
+- `uploadImage(imageBlob)`: 이미지를 외부 호스팅 서비스에 업로드
+- `shareViaEmail(imageBase64)`: 이메일로 이미지 공유
+- `shareViaTwitter(imageUrl)`: Twitter에 이미지 공유
+- `shareViaFacebook(imageUrl)`: Facebook에 이미지 공유
+- `shareViaWebAPI(imageFile)`: Web Share API로 공유
+- `showShareDialog()`: 공유 옵션 다이얼로그 표시
+- `showLoading()`: 로딩 인디케이터 표시
+- `hideLoading()`: 로딩 인디케이터 숨김
+
+**상태 관리**
+- `capturedImage`: 캡처된 이미지 Blob
+- `uploadedImageUrl`: 업로드된 이미지 URL
+- `isUploading`: 업로드 중 여부
+
+**공유 옵션 및 전략**
+
+1. **이메일 공유**
+   - Canvas를 Base64로 변환
+   - HTML 이메일 본문에 img 태그로 포함
+   - data URI 형식 사용
+   - 로컬/인터넷 모두 동작
+
+2. **Twitter 공유**
+   - Canvas를 이미지 호스팅 서비스(imgur)에 업로드
+   - 업로드된 이미지 URL 획득
+   - Twitter Web Intent에 이미지 URL 포함
+   - 로컬/인터넷 모두 동작 (인터넷 연결 필요)
+
+3. **Facebook 공유**
+   - Canvas를 이미지 호스팅 서비스(imgur)에 업로드
+   - 업로드된 이미지 URL 획득
+   - 임시 HTML 페이지 생성 (Open Graph 메타 태그 포함)
+   - 또는 이미지 URL을 직접 공유
+   - 로컬/인터넷 모두 동작 (인터넷 연결 필요)
+
+4. **Web Share API**
+   - Canvas를 File 객체로 변환
+   - 네이티브 공유 시트로 직접 공유
+   - 로컬/인터넷 모두 동작 (HTTPS 필요)
+   - 모바일 우선
+
 ## 5. 데이터 구조
 
 ### 5.1 도구 옵션 객체
@@ -343,11 +400,19 @@ app.js (Entry Point)
    - 캡처된 이미지를 PDF로 변환
    - PDF 파일 다운로드
 
-7. **웹 호스팅 배포** (신규 추가)
+7. **웹 호스팅 배포**
    - 무료 웹 호스팅 서비스에 배포
    - 인터넷 URL로 접근 가능
    - GitHub Pages, Netlify, Vercel 등 지원
    - 정적 파일 호스팅 (서버 불필요)
+
+8. **공유하기 기능** (신규 추가)
+   - 이메일로 이미지 공유
+   - Twitter에 이미지 공유
+   - Facebook에 이미지 공유
+   - Web Share API로 직접 공유
+   - 로컬 및 인터넷 환경 모두 지원
+   - 현재 작업 중인 Canvas 이미지 포함
 
 ## 7. UI/UX 설계
 
@@ -369,7 +434,7 @@ app.js (Entry Point)
 - **색상 선택기**: HTML5 color input
 - **선 두께**: range input (1-20px)
 - **폰트 크기**: range input (12-72px) - 텍스트 도구 선택 시 표시
-- **액션 버튼**: 전체 지우기, Undo, Redo, 저장, 이미지 불러오기, PDF 생성
+- **액션 버튼**: 전체 지우기, Undo, Redo, 저장, 이미지 불러오기, PDF 생성, 공유하기
 
 ### 7.3 사용자 인터랙션
 1. 도구 선택 → 버튼 클릭
@@ -380,6 +445,7 @@ app.js (Entry Point)
 6. 오브젝트 이동 → 선택 후 드래그
 7. 저장 → 버튼 클릭 → 다운로드
 8. PDF 생성 → 버튼 클릭 → URL 입력 다이얼로그 → URL 입력 → 페이지 로드 → PDF 다운로드
+9. 공유하기 → 버튼 클릭 → 공유 옵션 선택 → URL 복사 또는 이미지 공유
 
 ## 8. 이벤트 처리 구조
 
@@ -618,6 +684,274 @@ app.js (Entry Point)
 - jsPDF로 이미지를 PDF에 추가
 - 더 간단하고 안정적인 구현
 
+### 9.10 공유하기 기능 처리 (수정)
+
+**공유 다이얼로그 표시**
+- 모달 다이얼로그 또는 드롭다운 메뉴
+- 공유 옵션 목록 표시:
+  1. 이메일로 공유
+  2. Twitter 공유
+  3. Facebook 공유
+  4. 기타 (Web Share API)
+
+**Canvas 이미지 캡처**
+- canvas.toBlob() 또는 canvas.toDataURL('image/png') 사용
+- Base64 인코딩된 이미지 데이터 획득 (이메일용)
+- Blob 형식 획득 (업로드 및 Web Share API용)
+- PNG 포맷으로 캡처
+
+**외부 이미지 호스팅 업로드**
+
+이미지 호스팅 서비스 선택:
+- imgur API (권장)
+  - 무료, API 키 불필요 (익명 업로드 가능)
+  - 업로드 제한: 하루 1250개 (IP 기준)
+  - 반환: 이미지 URL
+- imgbb API
+  - 무료, API 키 필요
+  - 업로드 제한: 월 5000개
+- 기타: postimages, freeimage.host
+
+업로드 프로세스:
+1. Canvas를 Blob으로 변환
+2. FormData 생성 및 Blob 추가
+3. fetch()로 이미지 호스팅 API에 POST 요청
+4. 응답에서 업로드된 이미지 URL 추출
+5. 이미지 URL을 소셜 미디어 공유에 사용
+
+**이메일 공유 (Base64 이미지 포함)**
+```
+프로세스:
+1. Canvas를 Base64로 변환
+2. HTML 이메일 본문 생성 (img 태그에 Base64 포함)
+3. mailto 링크 생성
+4. 이메일 클라이언트 실행
+
+구현 방식:
+const imageBase64 = canvas.toDataURL('image/png');
+const subject = encodeURIComponent('그림판 작품 공유');
+const htmlBody = `
+<html>
+  <body>
+    <p>그림판에서 그린 작품을 확인해보세요!</p>
+    <img src="${imageBase64}" alt="Drawing" style="max-width:100%;">
+  </body>
+</html>
+`;
+const body = encodeURIComponent(htmlBody);
+const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+
+window.location.href = mailtoUrl;
+```
+
+**주의사항**
+- HTML 본문은 일부 이메일 클라이언트에서만 지원
+- Gmail, Outlook 웹메일은 HTML 본문 지원 안 함
+- 대안: Base64 이미지를 텍스트로 포함하고 수신자가 브라우저에서 열도록 안내
+- 또는 이미지를 업로드하여 URL만 본문에 포함
+
+**Twitter 공유 (이미지 호스팅 활용)**
+
+동작 방식:
+1. Canvas를 Blob으로 캡처
+2. imgur API에 이미지 업로드
+3. 업로드된 이미지 URL 획득
+4. 텍스트에 이미지 URL 포함하여 Twitter 공유
+
+구현 프로세스:
+```
+1. Canvas 캡처:
+   canvas.toBlob(blob => { ... })
+
+2. imgur에 업로드:
+   const formData = new FormData();
+   formData.append('image', blob);
+
+   fetch('https://api.imgur.com/3/image', {
+     method: 'POST',
+     headers: {
+       'Authorization': 'Client-ID [익명 클라이언트 ID]'
+     },
+     body: formData
+   })
+
+3. 이미지 URL 획득:
+   const response = await fetch(...);
+   const data = await response.json();
+   const imageUrl = data.data.link;
+
+4. Twitter 공유:
+   const text = encodeURIComponent('그림판 작품을 확인해보세요!');
+   const url = encodeURIComponent(imageUrl);
+   const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+
+   window.open(twitterUrl, '_blank', 'width=550,height=420');
+```
+
+**imgur 익명 업로드**
+- Client-ID: 익명 업로드용 공용 ID 사용 또는 등록
+- 인증 불필요
+- 업로드 제한: IP당 하루 1250개
+- 업로드된 이미지는 영구 보관
+
+**장점**
+- 로컬 환경에서도 동작 (인터넷 연결만 있으면)
+- 실제 Canvas 이미지가 Twitter에 표시됨
+- 페이지 URL이 아닌 이미지 URL 공유로 미리보기 확실
+
+**제약사항**
+- 인터넷 연결 필요 (API 호출)
+- 업로드 시간 소요 (로딩 인디케이터 필요)
+- imgur API 제한 (하루 1250개)
+
+**Facebook 공유 (이미지 호스팅 활용)**
+
+동작 방식:
+1. Canvas를 Blob으로 캡처
+2. imgur API에 이미지 업로드
+3. 업로드된 이미지 URL 획득
+4. 이미지 URL을 Facebook Share Dialog로 공유
+
+구현 프로세스:
+```
+1. Canvas 캡처 및 imgur 업로드:
+   (Twitter와 동일한 업로드 프로세스 사용)
+
+2. 이미지 URL 획득:
+   const imageUrl = data.data.link;
+
+3. Facebook 공유:
+   const url = encodeURIComponent(imageUrl);
+   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+
+   const popup = window.open(
+     facebookUrl,
+     'facebook-share',
+     'width=600,height=400,resizable=yes,scrollbars=yes'
+   );
+
+   if (!popup || popup.closed) {
+     alert('팝업 차단을 해제해주세요');
+   }
+```
+
+**Facebook의 이미지 URL 처리**
+- 이미지 URL(imgur 링크)을 공유하면 Facebook이 자동으로 이미지 미리보기 생성
+- Open Graph 메타 태그 없어도 이미지 URL이면 자동 감지
+- 사용자가 그린 Canvas 이미지가 Facebook에 표시됨
+
+**장점**
+- 로컬 환경에서도 동작 (인터넷 연결만 있으면)
+- 인터넷 환경에서도 동일하게 동작
+- 실제 Canvas 이미지가 Facebook 미리보기로 표시됨
+- 페이지 URL이 아닌 이미지 URL 공유
+
+**제약사항**
+- 인터넷 연결 필수 (imgur API 호출)
+- 업로드 시간 소요 (1-3초, 로딩 인디케이터 필요)
+- imgur API 제한 (IP당 하루 1250개)
+
+**Web Share API (대안, 모바일 우선)**
+
+동작 방식:
+- 모바일 네이티브 공유 시트 활용
+- Canvas를 Blob/File로 변환하여 직접 공유 가능
+- 사용자가 공유 대상 선택 (이메일, 메신저, 소셜 미디어 등)
+
+구현:
+```
+기능 확인:
+if (navigator.share && navigator.canShare) {
+  // Web Share API 지원
+}
+
+공유 실행:
+const blob = await canvas.toBlob();
+const file = new File([blob], 'drawing.png', { type: 'image/png' });
+
+if (navigator.canShare({ files: [file] })) {
+  await navigator.share({
+    title: '내 그림',
+    text: '그림판에서 그린 작품입니다',
+    files: [file]
+  });
+}
+```
+
+장점:
+- 이미지 직접 공유 가능
+- 모바일에서 다양한 앱으로 공유
+
+제약:
+- HTTPS 필요
+- 주로 모바일 지원 (Chrome Android, Safari iOS)
+- 데스크톱 지원 제한적
+
+**Web Share API 사용**
+```
+기능 확인:
+if (navigator.share && navigator.canShare) { ... }
+
+Canvas를 File로 변환:
+canvas.toBlob(blob => {
+  const file = new File([blob], 'drawing.png', { type: 'image/png' });
+
+  if (navigator.canShare({ files: [file] })) {
+    navigator.share({
+      title: '내 그림',
+      text: '그림판에서 그린 작품입니다',
+      files: [file]
+    });
+  }
+});
+
+제약:
+- HTTPS 필요
+- 사용자 제스처(클릭) 후에만 호출 가능
+- 모바일에서 주로 지원 (Chrome Android 89+, Safari iOS 15+)
+- 데스크톱 지원 제한적
+- 파일 공유는 일부 브라우저만 지원
+```
+
+**공유 플로우**
+
+이메일 공유:
+1. 공유 버튼 클릭
+2. "이메일로 공유" 옵션 선택
+3. mailto 링크 생성 (제목, 본문에 페이지 URL 포함)
+4. window.location.href = mailtoUrl 또는 window.open() 호출
+5. 사용자의 기본 이메일 클라이언트 자동 실행
+
+Twitter 공유:
+1. 공유 버튼 클릭
+2. "Twitter 공유" 옵션 선택
+3. Twitter Web Intent URL 생성 (텍스트와 페이지 URL 포함)
+4. window.open()으로 새 창 열기 (550x420)
+5. 사용자가 Twitter에서 직접 트윗 작성 및 게시
+
+Facebook 공유:
+1. 공유 버튼 클릭
+2. "Facebook 공유" 옵션 선택
+3. Facebook Share Dialog URL 생성 (페이지 URL 포함)
+4. window.open()으로 새 창 열기 (600x400)
+5. 사용자가 Facebook에서 직접 게시
+
+Web Share API (기타 공유):
+1. 공유 버튼 클릭
+2. "기타 공유" 옵션 선택
+3. Canvas를 Blob/File로 변환
+4. navigator.canShare() 확인
+5. navigator.share() 호출하여 네이티브 공유 시트 표시
+6. 사용자가 공유 대상 선택 (메신저, 이메일, SNS 등)
+7. 미지원 시 "이 브라우저는 공유 기능을 지원하지 않습니다" 메시지
+
+**에러 처리**
+- 이메일 클라이언트 미설정: "이메일 클라이언트를 설정해주세요" 안내
+- 팝업 차단: "팝업 차단을 해제해주세요" 안내
+- Web Share API 미지원: "이 브라우저는 공유 기능을 지원하지 않습니다" 메시지
+- HTTPS 아닌 환경: Web Share API 동작 안 함 안내
+- Canvas 캡처 실패: "이미지 생성에 실패했습니다" 메시지
+
 ## 10. 성능 고려사항
 
 ### 10.1 최적화 전략
@@ -728,6 +1062,14 @@ Developer는 다음 사항을 확인해야 합니다:
 - **PDF 생성이 정상적으로 완료되는지**
 - **생성된 PDF가 다운로드되는지**
 - **CORS 에러 시 적절한 에러 메시지가 표시되는지**
+- **공유 다이얼로그가 정상적으로 표시되는지**
+- **이메일 공유 시 mailto 링크가 정상적으로 동작하는지**
+- **Twitter 공유 시 팝업 창이 정상적으로 열리는지**
+- **Facebook 공유 시 팝업 창이 정상적으로 열리는지**
+- **팝업 차단 시 에러 메시지가 표시되는지**
+- **Web Share API가 지원되는 브라우저에서 동작하는지**
+- **Canvas 이미지가 Web Share API로 정상적으로 공유되는지**
+- **Open Graph 메타 태그가 올바르게 설정되어 있는지**
 
 ### 12.3 에러 처리
 - Canvas 지원 여부 확인
@@ -739,6 +1081,11 @@ Developer는 다음 사항을 확인해야 합니다:
 - **CORS 에러 처리 및 사용자 안내**
 - **PDF 라이브러리 로드 실패 처리**
 - **PDF 생성 실패 처리**
+- **이메일 클라이언트 미설정 시 에러 안내**
+- **팝업 차단 시 에러 안내**
+- **Web Share API 미지원 시 에러 안내**
+- **공유 권한 거부 처리**
+- **Canvas 이미지 캡처 실패 처리**
 
 ## 13. PDF 생성 기능 구현 권장 사항
 
@@ -1008,9 +1355,529 @@ Developer는 배포 전에 다음을 확인해야 합니다:
 - 시스템 폰트 사용 확인
 - 웹 폰트 필요 시 Google Fonts 사용
 
+## 15. 공유하기 기능 구현 가이드
+
+### 15.1 구현 우선순위
+
+**1단계: imgur API 연동 (필수, Twitter/Facebook용)**
+- Canvas 이미지를 imgur에 업로드하는 공통 함수
+- 로컬/인터넷 모두 동작 (인터넷 연결 필요)
+- 업로드된 이미지 URL 반환
+
+**2단계: 이메일 공유 (필수)**
+- Canvas를 Base64로 변환
+- HTML 이메일 본문에 이미지 포함
+- 로컬/인터넷 모두 동작
+
+**3단계: Twitter 공유 (필수)**
+- imgur에 업로드 후 이미지 URL 공유
+- 로컬/인터넷 모두 동작
+
+**4단계: Facebook 공유 (필수)**
+- imgur에 업로드 후 이미지 URL 공유
+- 로컬/인터넷 모두 동작
+
+**5단계: Web Share API (선택, 모바일 우선)**
+- Canvas 이미지를 파일로 직접 공유
+- 로컬/인터넷 모두 동작 (HTTPS 필요)
+
+### 15.2 공유 다이얼로그 UI 설계
+
+**다이얼로그 구성**
+```
+┌─────────────────────────┐
+│     공유하기            │
+├─────────────────────────┤
+│  [✉️] 이메일로 공유     │
+│  [🐦] Twitter 공유      │
+│  [📘] Facebook 공유     │
+│  [📤] 기타 공유         │
+└─────────────────────────┘
+```
+
+**버튼 구성**
+- 아이콘 + 텍스트 조합
+- 클릭 시 해당 공유 기능 실행
+- 새 창 열림 또는 이메일 클라이언트 실행
+- 에러 발생 시 토스트 메시지 표시
+
+### 15.3 imgur API 연동 (공통 함수)
+
+**imgur 익명 업로드 API**
+```
+엔드포인트: https://api.imgur.com/3/image
+메서드: POST
+헤더: Authorization: Client-ID [익명 클라이언트 ID]
+본문: FormData with image blob
+
+익명 Client-ID:
+- 공용 익명 ID 사용 또는 imgur에서 직접 등록
+- 등록 URL: https://api.imgur.com/oauth2/addclient
+- 익명 업로드는 Client-ID만 있으면 OAuth 불필요
+```
+
+**업로드 구현**
+```
+프로세스:
+1. Canvas를 Blob으로 변환
+2. FormData 생성
+3. fetch()로 imgur API 호출
+4. 응답에서 이미지 URL 추출
+
+공통 함수:
+async function uploadToImgur(canvasBlob) {
+  const formData = new FormData();
+  formData.append('image', canvasBlob);
+
+  const response = await fetch('https://api.imgur.com/3/image', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Client-ID YOUR_CLIENT_ID'
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    throw new Error('이미지 업로드 실패');
+  }
+
+  const data = await response.json();
+  return data.data.link;  // 업로드된 이미지 URL
+}
+
+사용 예:
+try {
+  showLoading('이미지 업로드 중...');
+  const imageUrl = await uploadToImgur(canvasBlob);
+  hideLoading();
+  return imageUrl;
+} catch (error) {
+  hideLoading();
+  alert('이미지 업로드에 실패했습니다');
+}
+```
+
+**응답 형식**
+```
+{
+  "data": {
+    "id": "ABC123",
+    "link": "https://i.imgur.com/ABC123.png",
+    "deletehash": "XYZ789",
+    ...
+  },
+  "success": true,
+  "status": 200
+}
+```
+
+**에러 처리**
+- 네트워크 에러: "인터넷 연결을 확인해주세요"
+- API 제한 초과: "업로드 한도가 초과되었습니다"
+- 업로드 실패: "이미지 업로드에 실패했습니다"
+
+**로컬/인터넷 환경 지원**
+- 로컬: 인터넷 연결만 있으면 동작 (file:// 프로토콜에서도 fetch 가능)
+- 인터넷: 정상 동작
+- CORS 문제 없음 (imgur API는 CORS 허용)
+
+### 15.4 이메일 공유 구현
+
+**Canvas Base64 이미지 포함 방식**
+```
+프로세스:
+1. Canvas를 Base64로 변환
+2. 이미지 URL을 imgur에 업로드 (선택 사항)
+3. HTML 이메일 본문 생성
+4. mailto 링크로 이메일 클라이언트 실행
+
+방법 1: imgur 이미지 URL 사용 (권장)
+const imageUrl = await uploadToImgur(canvasBlob);
+const subject = encodeURIComponent('그림판 작품 공유');
+const body = encodeURIComponent(
+  `그림판에서 그린 작품을 확인해보세요!\n\n이미지: ${imageUrl}`
+);
+const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+window.location.href = mailtoUrl;
+
+방법 2: Base64 이미지 직접 포함 (제약 많음)
+const imageBase64 = canvas.toDataURL('image/png');
+const subject = encodeURIComponent('그림판 작품 공유');
+// HTML 본문은 대부분의 이메일 클라이언트에서 지원 안 함
+const body = encodeURIComponent(
+  `그림판 작품입니다. 브라우저에서 다음 데이터 URL을 열어보세요:\n\n${imageBase64}`
+);
+const mailtoUrl = `mailto:?subject=${subject}&body=${body}`;
+window.location.href = mailtoUrl;
+```
+
+**권장 구현**
+- imgur에 업로드하여 이미지 URL 본문에 포함
+- 수신자가 URL 클릭하여 이미지 확인
+- HTML 이메일은 대부분의 클라이언트에서 지원 안 하므로 비권장
+
+**로컬/인터넷 환경 지원**
+- 로컬: imgur 업로드는 인터넷 연결만 있으면 동작
+- 인터넷: 정상 동작
+- 이메일 클라이언트 설정 필요
+
+### 15.5 Twitter 공유 구현 (수정 - 이미지 호스팅 활용)
+
+**Twitter Web Intent + imgur 이미지 URL**
+```
+프로세스:
+1. Canvas를 Blob으로 캡처
+2. imgur API에 이미지 업로드 (공통 함수 사용)
+3. 업로드된 이미지 URL 획득
+4. 텍스트에 이미지 URL 포함하여 Twitter 공유
+
+구현:
+async function shareToTwitter() {
+  try {
+    // 로딩 표시
+    showLoading('이미지 업로드 중...');
+
+    // Canvas를 Blob으로 변환
+    canvas.toBlob(async (blob) => {
+      // imgur에 업로드
+      const imageUrl = await uploadToImgur(blob);
+
+      hideLoading();
+
+      // Twitter 공유 URL 생성
+      const text = encodeURIComponent('그림판에서 그린 작품을 확인해보세요!');
+      const url = encodeURIComponent(imageUrl);
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
+
+      // 팝업 창 열기
+      const popup = window.open(
+        twitterUrl,
+        'twitter-share',
+        'width=550,height=420,resizable=yes,scrollbars=yes'
+      );
+
+      // 팝업 차단 확인
+      if (!popup || popup.closed) {
+        alert('팝업 차단을 해제해주세요');
+      }
+    });
+  } catch (error) {
+    hideLoading();
+    alert('공유에 실패했습니다: ' + error.message);
+  }
+}
+```
+
+**Twitter의 이미지 URL 처리**
+- imgur 이미지 URL을 공유하면 Twitter가 자동으로 이미지 카드 생성
+- 트윗에 이미지 미리보기 표시됨
+- 사용자가 그린 Canvas 이미지가 Twitter에 표시됨
+
+**장점**
+- 로컬 환경에서도 동작 (인터넷 연결만 있으면)
+- 인터넷 환경에서도 동일하게 동작
+- 실제 Canvas 이미지가 Twitter 카드로 표시됨
+- 페이지 URL이 아닌 이미지 URL 공유
+
+**제약사항**
+- 인터넷 연결 필수 (imgur API 호출)
+- 업로드 시간 소요 (1-3초, 로딩 인디케이터 필요)
+- imgur API 제한 (IP당 하루 1250개)
+- 팝업 차단 가능성
+
+### 15.6 Facebook 공유 구현 (수정 - 이미지 호스팅 활용)
+
+**Facebook Share Dialog + imgur 이미지 URL**
+```
+프로세스:
+1. Canvas를 Blob으로 캡처
+2. imgur API에 이미지 업로드 (공통 함수 사용)
+3. 업로드된 이미지 URL 획득
+4. 이미지 URL을 Facebook Share Dialog로 공유
+
+구현:
+async function shareToFacebook() {
+  try {
+    // 로딩 표시
+    showLoading('이미지 업로드 중...');
+
+    // Canvas를 Blob으로 변환
+    canvas.toBlob(async (blob) => {
+      // imgur에 업로드
+      const imageUrl = await uploadToImgur(blob);
+
+      hideLoading();
+
+      // Facebook 공유 URL 생성
+      const url = encodeURIComponent(imageUrl);
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+
+      // 팝업 창 열기
+      const popup = window.open(
+        facebookUrl,
+        'facebook-share',
+        'width=600,height=400,resizable=yes,scrollbars=yes'
+      );
+
+      // 팝업 차단 확인
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        alert('팝업 차단을 해제해주세요');
+      }
+    });
+  } catch (error) {
+    hideLoading();
+    alert('공유에 실패했습니다: ' + error.message);
+  }
+}
+```
+
+**Facebook의 이미지 URL 처리**
+- imgur 이미지 URL을 공유하면 Facebook이 자동으로 이미지 미리보기 생성
+- 게시물에 이미지 미리보기 표시됨
+- 사용자가 그린 Canvas 이미지가 Facebook에 표시됨
+
+**장점**
+- 로컬 환경에서도 동작 (인터넷 연결만 있으면)
+- 인터넷 환경에서도 동일하게 동작
+- 실제 Canvas 이미지가 Facebook 미리보기로 표시됨
+- 페이지 URL이 아닌 이미지 URL 공유
+
+**제약사항**
+- 인터넷 연결 필수 (imgur API 호출)
+- 업로드 시간 소요 (1-3초, 로딩 인디케이터 필요)
+- imgur API 제한 (IP당 하루 1250개)
+- 팝업 차단 가능성
+- Facebook이 imgur 이미지를 크롤링하여 캐시하므로 즉시 미리보기 표시됨
+
+### 15.7 Web Share API 구현 (선택, 모바일 우선)
+
+**기능 확인 및 실행**
+```
+프로세스:
+1. Web Share API 지원 확인
+2. Canvas를 Blob으로 변환
+3. File 객체 생성
+4. 파일 공유 가능 여부 확인
+5. navigator.share() 호출
+
+구현:
+// 지원 확인
+if (!navigator.share || !navigator.canShare) {
+  alert('이 브라우저는 공유 기능을 지원하지 않습니다');
+  return;
+}
+
+// Canvas를 Blob으로 변환
+canvas.toBlob(async (blob) => {
+  try {
+    // File 객체 생성
+    const file = new File([blob], 'drawing.png', { type: 'image/png' });
+
+    // 파일 공유 가능 확인
+    if (navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: '내 그림',
+        text: '그림판에서 그린 작품입니다',
+        files: [file]
+      });
+      console.log('공유 성공');
+    } else {
+      alert('이 브라우저는 파일 공유를 지원하지 않습니다');
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      console.log('사용자가 공유를 취소했습니다');
+    } else {
+      console.error('공유 실패:', err);
+      alert('공유에 실패했습니다');
+    }
+  }
+}, 'image/png');
+```
+
+**브라우저 지원**
+- Chrome Android 89+: 파일 공유 지원
+- Safari iOS 15+: 파일 공유 지원
+- Chrome Desktop 89+: URL/텍스트만 지원, 파일 미지원
+- Firefox, Edge: 제한적 지원
+
+**장점**
+- 네이티브 공유 시트 활용
+- Canvas 이미지를 직접 공유 가능
+- 사용자가 다양한 앱 선택 가능 (메신저, 이메일, SNS 등)
+
+**제약**
+- HTTPS 필수
+- 사용자 제스처(클릭) 후에만 호출 가능
+- 모바일 위주 지원
+- 데스크톱에서는 제한적
+
+### 15.8 토스트 메시지 구현 (에러 표시용)
+
+**토스트 UI**
+```
+┌──────────────────────────────┐
+│ ⚠️ 팝업 차단을 해제해주세요      │
+└──────────────────────────────┘
+```
+
+**표시 로직**
+- 하단 중앙에 표시
+- 3초 후 자동 사라짐
+- 애니메이션 효과 (fade in/out)
+- 여러 메시지 동시 표시 방지
+
+**사용 시나리오**
+- 팝업 차단 시: "팝업 차단을 해제해주세요"
+- 이메일 클라이언트 미설정 시: "이메일 클라이언트를 설정해주세요"
+- Web Share API 미지원 시: "이 브라우저는 공유 기능을 지원하지 않습니다"
+- 공유 실패 시: "공유에 실패했습니다"
+
+**CSS 구현**
+- position: fixed
+- bottom: 20px, left: 50%, transform: translateX(-50%)
+- 배경색: 에러는 빨강/주황, 정보는 파랑/초록
+- 패딩, 둥근 모서리, 그림자
+- z-index 높게 설정 (9999)
+
+### 15.9 브라우저 호환성
+
+**mailto 링크**
+- 모든 브라우저 지원
+- 단, 이메일 클라이언트 설정 필요
+
+**Twitter/Facebook Web Intent**
+- 모든 브라우저 지원
+- 팝업 차단 가능성 있음
+
+**Web Share API**
+- Chrome 89+ (Android): 파일 공유 지원
+- Safari 15+ (iOS): 파일 공유 지원
+- Chrome Desktop 89+: URL/텍스트만, 파일 미지원
+- Firefox, Edge: 제한적 지원
+- 미지원 시 "지원하지 않습니다" 메시지 표시
+
+**Canvas.toBlob()**
+- 모든 모던 브라우저 지원
+- IE는 미지원 (polyfill 필요하나 IE는 EOL)
+
+### 15.10 사용자 경험 개선
+
+**명확한 피드백**
+- 복사 완료: "URL이 복사되었습니다"
+- 저장 완료: "이미지가 저장되었습니다"
+- 공유 실패: "공유할 수 없습니다. 이미지를 저장하여 직접 업로드해주세요"
+
+**접근성**
+- 키보드로 다이얼로그 탐색 가능
+- ESC 키로 다이얼로그 닫기
+- 아이콘에 대체 텍스트
+
+**모바일 최적화**
+- 터치 친화적인 버튼 크기
+- Web Share API 우선 사용
+- 네이티브 공유 시트 활용
+
+### 15.11 테스트 시나리오
+
+**이메일 공유 테스트**
+1. Canvas에 그림 그리기
+2. 공유 버튼 클릭
+3. "이메일로 공유" 선택
+4. imgur 업로드 로딩 표시 확인 (방법 1 사용 시)
+5. 이메일 클라이언트가 자동으로 열리는지 확인
+6. 제목과 본문에 텍스트 및 이미지 URL이 포함되어 있는지 확인
+7. imgur URL로 이미지가 실제로 보이는지 확인
+8. 이메일 클라이언트 미설정 시 에러 메시지 확인
+9. 로컬 환경(file://)과 인터넷 환경 모두에서 테스트
+
+**Twitter 공유 테스트**
+1. Canvas에 그림 그리기
+2. 공유 버튼 클릭
+3. "Twitter 공유" 선택
+4. imgur 업로드 로딩 표시 확인
+5. 새 창(팝업)이 열리는지 확인
+6. 팝업 차단 시 토스트 메시지 확인
+7. Twitter 로그인 페이지 또는 트윗 작성 화면 확인
+8. 텍스트와 imgur 이미지 URL이 포함되어 있는지 확인
+9. 트윗 미리보기에서 Canvas 이미지가 표시되는지 확인
+10. 트윗하여 이미지 카드가 정상 표시되는지 확인
+11. 로컬 환경(file://)과 인터넷 환경 모두에서 테스트
+
+**Facebook 공유 테스트**
+1. Canvas에 그림 그리기
+2. 공유 버튼 클릭
+3. "Facebook 공유" 선택
+4. imgur 업로드 로딩 표시 확인
+5. 새 창(팝업)이 열리는지 확인
+6. 팝업 차단 시 토스트 메시지 확인
+7. Facebook 로그인 페이지 또는 공유 화면 확인
+8. imgur 이미지 URL이 포함되어 있는지 확인
+9. 공유 미리보기에서 Canvas 이미지가 표시되는지 확인
+10. 게시하여 이미지가 정상 표시되는지 확인
+11. 로컬 환경(file://)과 인터넷 환경 모두에서 테스트
+
+**Web Share API 테스트**
+1. 모바일 기기 (Android Chrome 또는 iOS Safari) 사용
+2. Canvas에 그림 그리기
+3. 공유 버튼 클릭
+4. "기타 공유" 선택
+5. 네이티브 공유 시트가 나타나는지 확인
+6. 다양한 앱(메신저, 이메일, SNS 등)이 표시되는지 확인
+7. 앱 선택하여 이미지가 공유되는지 확인
+8. 미지원 브라우저에서 에러 메시지 확인
+
+**팝업 차단 테스트**
+1. 브라우저 설정에서 팝업 차단 활성화
+2. Twitter 또는 Facebook 공유 시도
+3. 토스트 메시지로 "팝업 차단을 해제해주세요" 표시되는지 확인
+
 ---
 
 ## 변경 이력
+
+### v1.7 (2026-01-27)
+- **공유 기능 대폭 개선**: 로컬/인터넷 환경 모두 지원, 실제 Canvas 이미지 공유
+- **imgur API 연동 추가**: Canvas 이미지를 외부 호스팅 서비스에 업로드
+  - 익명 업로드 방식 사용 (Client-ID만 필요)
+  - 로컬 환경(file://)에서도 동작 (인터넷 연결 필요)
+  - 공통 uploadToImgur() 함수로 재사용성 향상
+- **이메일 공유 개선**: imgur 이미지 URL 포함 방식으로 변경
+  - 방법 1(권장): imgur URL 포함
+  - 방법 2(제약 많음): Base64 직접 포함
+- **Twitter 공유 개선**: imgur 이미지 URL 공유로 실제 Canvas 이미지가 Twitter 카드로 표시
+- **Facebook 공유 개선**: imgur 이미지 URL 공유로 실제 Canvas 이미지가 미리보기로 표시
+- **핵심 해결 과제**:
+  - 페이지 URL이 아닌 실제 Canvas 이미지가 소셜 미디어에 표시됨
+  - 로컬과 인터넷 환경 모두에서 동일하게 동작
+  - 동적 Canvas 이미지 공유 문제 해결
+- 구현 우선순위 재정리
+- 테스트 시나리오 전면 업데이트 (로컬/인터넷 환경 테스트 추가)
+
+### v1.6.1 (2026-01-26)
+- **공유 기능 수정**: URL 복사 및 이미지 저장 기능 삭제
+- **신규 기능**: 이메일 공유 추가 (mailto 링크 사용)
+- Twitter/Facebook 공유 설계 수정 및 개선
+  - Twitter Web Intent API 사용
+  - Facebook Share Dialog 사용
+  - 팝업 차단 감지 및 에러 처리
+  - Open Graph 메타 태그 설정 가이드
+- Web Share API 구현 상세화 (모바일 우선)
+- 동적 이미지 공유 제약사항 명시
+- 팝업 차단 처리 로직 추가
+- 테스트 시나리오 업데이트
+
+### v1.6 (2026-01-26)
+- **신규 기능**: 공유하기 기능 추가
+- ShareManager 클래스 설계
+- URL 복사 기능 (Clipboard API + Fallback)
+- Canvas 이미지 캡처 및 저장
+- Web Share API 연동
+- 소셜 미디어 공유 (Twitter, Facebook)
+- 토스트 메시지 UI 설계
+- 공유 다이얼로그 UI 설계
+- 브라우저 호환성 및 fallback 전략
+- 공유 기능 테스트 시나리오
 
 ### v1.5 (2026-01-26)
 - **신규 기능**: 무료 웹 호스팅 배포 가이드 추가
@@ -1052,7 +1919,7 @@ Developer는 배포 전에 다음을 확인해야 합니다:
 
 ---
 
-**문서 버전**: 1.5
-**최종 수정일**: 2026-01-26
+**문서 버전**: 1.7
+**최종 수정일**: 2026-01-27
 **작성자**: Architext
 **대상 독자**: Developer (구현 담당자)

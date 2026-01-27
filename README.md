@@ -23,6 +23,12 @@ HTML5 Canvas 기반의 웹 그림판 애플리케이션입니다.
 - 전체 지우기
 - PNG 이미지로 저장
 - **PDF 생성**
+- **공유하기** (imgur API 연동)
+  - 이메일로 공유 (Canvas 이미지 URL 포함)
+  - Twitter 공유 (실제 Canvas 이미지 표시)
+  - Facebook 공유 (실제 Canvas 이미지 미리보기)
+  - 기타 공유 (Web Share API, 모바일)
+  - 로컬/인터넷 환경 모두 지원
 
 ### 오브젝트 관리
 - 오브젝트 선택 및 이동
@@ -60,7 +66,8 @@ drawing_board/
 ├── index.html          # 메인 HTML 파일
 ├── css/
 │   ├── style.css       # 메인 스타일시트
-│   └── toolbar.css     # 툴바 스타일
+│   ├── toolbar.css     # 툴바 스타일
+│   └── share.css       # 공유 다이얼로그 스타일
 ├── js/
 │   ├── app.js          # 애플리케이션 초기화
 │   ├── canvas.js       # Canvas 관리
@@ -68,6 +75,7 @@ drawing_board/
 │   ├── toolbar.js      # 툴바 UI 및 이벤트
 │   ├── tools.js        # 그리기 도구들
 │   ├── pdfExporter.js  # PDF 생성
+│   ├── shareManager.js # 공유 기능
 │   └── utils.js        # 유틸리티 함수
 └── architect.md        # 설계 문서
 ```
@@ -91,5 +99,5 @@ drawing_board/
 
 ---
 
-**버전**: 1.5
-**최종 업데이트**: 2026-01-26
+**버전**: 1.7
+**최종 업데이트**: 2026-01-27

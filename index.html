@@ -34,6 +34,12 @@
                     </svg>
                     <span>선택</span>
                 </button>
+                <button class="tool-btn" data-tool="freeSelect" title="자유 선택">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12 Q7 3, 12 5 T21 12 Q18 20, 12 18 T3 12 Z" fill="none" stroke-dasharray="5,5"></path>
+                    </svg>
+                    <span>자유선택</span>
+                </button>
                 <button class="tool-btn" data-tool="pen" title="펜">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
@@ -82,14 +88,51 @@
                     </svg>
                     <span>이미지</span>
                 </button>
+                <button class="tool-btn" data-tool="paint" title="페인트">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a10 10 0 0 1 10 10c0 6-4 9-9 9H9a2 2 0 0 1-2-2 1 1 0 0 1 1-1h3a4 4 0 0 0 4-4V9a2 2 0 1 1 4 0c0 4-3 7-7 7h-1"></path>
+                        <circle cx="7.5" cy="15.5" r="0.5" fill="currentColor"></circle>
+                    </svg>
+                    <span>페인트</span>
+                </button>
+                <button class="tool-btn" data-tool="eyedropper" title="스포이트">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 3l3 3-3 3-3-3 3-3z"></path>
+                        <path d="M13 8l-9 9 3 3 9-9"></path>
+                        <circle cx="5" cy="19" r="2"></circle>
+                    </svg>
+                    <span>스포이트</span>
+                </button>
             </div>
 
             <div class="divider"></div>
 
             <div class="option-group">
                 <div class="option-item">
-                    <label for="colorPicker">색상</label>
-                    <input type="color" id="colorPicker" value="#000000">
+                    <label>색상</label>
+                    <div class="color-swatch-container">
+                        <!-- 포토샵 스타일: 겹쳐진 두 개의 사각형 -->
+                        <div class="color-swatch-wrapper">
+                            <div class="color-swatch-bg" id="bgColorSwatch" title="배경색 (클릭하여 전환)"></div>
+                            <div class="color-swatch-fg" id="fgColorSwatch" title="전경색 (클릭하여 전환)"></div>
+                        </div>
+                        <!-- 숨겨진 color picker들 -->
+                        <input type="color" id="fgColorPicker" value="#000000" style="display:none;">
+                        <input type="color" id="bgColorPicker" value="#ffffff" style="display:none;">
+                        <!-- 리셋 아이콘 (기본 흑백으로) -->
+                        <button class="color-reset-btn" id="colorResetBtn" title="기본 색상 (D)">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <rect x="2" y="2" width="6" height="6" />
+                                <rect x="8" y="8" width="6" height="6" fill="white" stroke="currentColor"/>
+                            </svg>
+                        </button>
+                        <!-- 전환 화살표 아이콘 -->
+                        <button class="color-swap-btn" id="colorSwapBtn" title="전경색/배경색 전환 (X)">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 8 L8 3 M8 3 L13 8 M8 13 L3 8 M13 8 L8 13"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="option-item">
                     <label for="lineWidth">두께: <span id="lineWidthValue">5</span></label>
@@ -175,6 +218,20 @@
                     </svg>
                     <span>공유</span>
                 </button>
+                <button class="action-btn" id="saveProjectBtn" title="작업 저장">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    <span>프로젝트 저장</span>
+                </button>
+                <button class="action-btn" id="openProjectBtn" title="작업 불러오기">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"></path>
+                    </svg>
+                    <span>불러오기</span>
+                </button>
             </div>
         </div>
 
@@ -183,16 +240,101 @@
         </div>
     </div>
 
+    <!-- Save/Load 다이얼로그 -->
+    <div id="saveLoadDialog" class="dialog-overlay" style="display:none;">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3 id="dialogTitle">작업 저장/불러오기</h3>
+                <button class="dialog-close" id="closeDialogBtn">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div id="saveSlots" class="save-slots">
+                    <!-- 슬롯 1-5 -->
+                    <div class="save-slot" data-slot="1">
+                        <div class="slot-preview">
+                            <canvas class="slot-canvas" width="120" height="80"></canvas>
+                        </div>
+                        <div class="slot-info">
+                            <div class="slot-name">슬롯 1</div>
+                            <div class="slot-date">비어있음</div>
+                        </div>
+                        <div class="slot-actions">
+                            <button class="slot-save-btn">저장</button>
+                            <button class="slot-load-btn" disabled>불러오기</button>
+                            <button class="slot-delete-btn" disabled>삭제</button>
+                        </div>
+                    </div>
+                    <div class="save-slot" data-slot="2">
+                        <div class="slot-preview">
+                            <canvas class="slot-canvas" width="120" height="80"></canvas>
+                        </div>
+                        <div class="slot-info">
+                            <div class="slot-name">슬롯 2</div>
+                            <div class="slot-date">비어있음</div>
+                        </div>
+                        <div class="slot-actions">
+                            <button class="slot-save-btn">저장</button>
+                            <button class="slot-load-btn" disabled>불러오기</button>
+                            <button class="slot-delete-btn" disabled>삭제</button>
+                        </div>
+                    </div>
+                    <div class="save-slot" data-slot="3">
+                        <div class="slot-preview">
+                            <canvas class="slot-canvas" width="120" height="80"></canvas>
+                        </div>
+                        <div class="slot-info">
+                            <div class="slot-name">슬롯 3</div>
+                            <div class="slot-date">비어있음</div>
+                        </div>
+                        <div class="slot-actions">
+                            <button class="slot-save-btn">저장</button>
+                            <button class="slot-load-btn" disabled>불러오기</button>
+                            <button class="slot-delete-btn" disabled>삭제</button>
+                        </div>
+                    </div>
+                    <div class="save-slot" data-slot="4">
+                        <div class="slot-preview">
+                            <canvas class="slot-canvas" width="120" height="80"></canvas>
+                        </div>
+                        <div class="slot-info">
+                            <div class="slot-name">슬롯 4</div>
+                            <div class="slot-date">비어있음</div>
+                        </div>
+                        <div class="slot-actions">
+                            <button class="slot-save-btn">저장</button>
+                            <button class="slot-load-btn" disabled>불러오기</button>
+                            <button class="slot-delete-btn" disabled>삭제</button>
+                        </div>
+                    </div>
+                    <div class="save-slot" data-slot="5">
+                        <div class="slot-preview">
+                            <canvas class="slot-canvas" width="120" height="80"></canvas>
+                        </div>
+                        <div class="slot-info">
+                            <div class="slot-name">슬롯 5</div>
+                            <div class="slot-date">비어있음</div>
+                        </div>
+                        <div class="slot-actions">
+                            <button class="slot-save-btn">저장</button>
+                            <button class="slot-load-btn" disabled>불러오기</button>
+                            <button class="slot-delete-btn" disabled>삭제</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- jsPDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <script src="js/utils.js"></script>
-    <script src="js/objectManager.js"></script>
-    <script src="js/tools.js"></script>
-    <script src="js/canvas.js"></script>
-    <script src="js/pdfExporter.js"></script>
-    <script src="js/shareManager.js"></script>
-    <script src="js/toolbar.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/utils.js?v=1.9.2"></script>
+    <script src="js/objectManager.js?v=1.9.2"></script>
+    <script src="js/tools.js?v=1.9.2"></script>
+    <script src="js/canvas.js?v=1.9.2"></script>
+    <script src="js/pdfExporter.js?v=1.9.2"></script>
+    <script src="js/shareManager.js?v=1.9.2"></script>
+    <script src="js/toolbar.js?v=1.9.2"></script>
+    <script src="js/app.js?v=1.9.2"></script>
 </body>
 </html>

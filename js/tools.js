@@ -27,7 +27,7 @@ class PenTool extends DrawingTool {
         this.points = [{ x, y }];
 
         ctx.save();
-        ctx.strokeStyle = options.color;
+        ctx.strokeStyle = options.foregroundColor || options.color || '#000000';
         ctx.lineWidth = options.lineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -43,7 +43,7 @@ class PenTool extends DrawingTool {
         this.points.push({ x, y });
 
         ctx.save();
-        ctx.strokeStyle = options.color;
+        ctx.strokeStyle = options.foregroundColor || options.color || '#000000';
         ctx.lineWidth = options.lineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -70,7 +70,8 @@ class PenTool extends DrawingTool {
                     points: [...this.points]
                 },
                 style: {
-                    color: options.color,
+                    strokeColor: options.foregroundColor || options.color || '#000000',
+                    fillColor: 'transparent',
                     lineWidth: options.lineWidth,
                     opacity: options.opacity,
                     lineCap: 'round',
@@ -146,7 +147,7 @@ class LineTool extends DrawingTool {
         this.objectManager.renderAll(ctx);
 
         ctx.save();
-        ctx.strokeStyle = options.color;
+        ctx.strokeStyle = options.foregroundColor || options.color || '#000000';
         ctx.lineWidth = options.lineWidth;
         ctx.lineCap = 'round';
         ctx.globalAlpha = options.opacity;
@@ -177,7 +178,8 @@ class LineTool extends DrawingTool {
                     endY: y
                 },
                 style: {
-                    color: options.color,
+                    strokeColor: options.foregroundColor || options.color || '#000000',
+                    fillColor: 'transparent',
                     lineWidth: options.lineWidth,
                     opacity: options.opacity,
                     lineCap: 'round'
@@ -217,9 +219,15 @@ class RectangleTool extends DrawingTool {
         const height = y - this.startY;
 
         ctx.save();
-        ctx.strokeStyle = options.color;
-        ctx.lineWidth = options.lineWidth;
         ctx.globalAlpha = options.opacity;
+        // 채우기
+        if (options.backgroundColor && options.backgroundColor !== 'transparent') {
+            ctx.fillStyle = options.backgroundColor;
+            ctx.fillRect(this.startX, this.startY, width, height);
+        }
+        // 윤곽선
+        ctx.strokeStyle = options.foregroundColor || options.color || '#000000';
+        ctx.lineWidth = options.lineWidth;
         ctx.strokeRect(this.startX, this.startY, width, height);
         ctx.restore();
     }
@@ -247,7 +255,8 @@ class RectangleTool extends DrawingTool {
                     height: actualHeight
                 },
                 style: {
-                    color: options.color,
+                    strokeColor: options.foregroundColor || options.color || '#000000',
+                    fillColor: options.backgroundColor || 'transparent',
                     lineWidth: options.lineWidth,
                     opacity: options.opacity
                 },
@@ -285,8 +294,6 @@ class CircleTool extends DrawingTool {
         const isEllipseMode = event && (event.shiftKey || event.altKey);
 
         ctx.save();
-        ctx.strokeStyle = options.color;
-        ctx.lineWidth = options.lineWidth;
         ctx.globalAlpha = options.opacity;
         ctx.beginPath();
 
@@ -312,6 +319,14 @@ class CircleTool extends DrawingTool {
             ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
         }
 
+        // 채우기
+        if (options.backgroundColor && options.backgroundColor !== 'transparent') {
+            ctx.fillStyle = options.backgroundColor;
+            ctx.fill();
+        }
+        // 윤곽선
+        ctx.strokeStyle = options.foregroundColor || options.color || '#000000';
+        ctx.lineWidth = options.lineWidth;
         ctx.stroke();
         ctx.restore();
     }
@@ -344,7 +359,8 @@ class CircleTool extends DrawingTool {
                             rotation: 0
                         },
                         style: {
-                            color: options.color,
+                            strokeColor: options.foregroundColor || options.color || '#000000',
+                            fillColor: options.backgroundColor || 'transparent',
                             lineWidth: options.lineWidth,
                             opacity: options.opacity
                         },
@@ -377,7 +393,8 @@ class CircleTool extends DrawingTool {
                             radius: radius
                         },
                         style: {
-                            color: options.color,
+                            strokeColor: options.foregroundColor || options.color || '#000000',
+                            fillColor: options.backgroundColor || 'transparent',
                             lineWidth: options.lineWidth,
                             opacity: options.opacity
                         },
@@ -607,7 +624,7 @@ class TextTool extends DrawingTool {
         this.inputElement.style.left = (canvasRect.left + x) + 'px';
         this.inputElement.style.top = (canvasRect.top + y) + 'px';
         this.inputElement.style.fontSize = (options.fontSize || 16) + 'px';
-        this.inputElement.style.color = options.color;
+        this.inputElement.style.color = options.foregroundColor || options.color || '#000000';
         this.inputElement.style.border = '2px solid #0066ff';
         this.inputElement.style.outline = 'none';
         this.inputElement.style.background = 'rgba(255, 255, 255, 0.9)';
@@ -707,7 +724,8 @@ class TextTool extends DrawingTool {
                     textBaseline: textBaseline
                 },
                 style: {
-                    color: options.color,
+                    strokeColor: options.foregroundColor || options.color || '#000000',
+                    fillColor: 'transparent',
                     opacity: options.opacity
                 },
                 bounds: {
@@ -853,4 +871,183 @@ class ImageTool extends DrawingTool {
 
     onMouseMove(ctx, x, y, options) {}
     onMouseUp(ctx, x, y, options) {}
+}
+
+class PaintTool extends DrawingTool {
+    onMouseDown(ctx, x, y, options) {
+        // 클릭한 위치의 객체 찾기
+        const obj = this.objectManager.getObjectAt(x, y);
+
+        if (!obj) return;
+
+        // 객체 내부(fillColor)만 전경색으로 채우기
+        // strokeColor는 변경하지 않음 (윤곽선 유지)
+        obj.style.fillColor = options.foregroundColor || options.color || '#000000';
+
+        // 즉시 다시 그리기
+        this.objectManager.renderAll(ctx);
+    }
+
+    onMouseMove(ctx, x, y, options) {
+        // 드래그 중에는 아무것도 하지 않음
+    }
+
+    onMouseUp(ctx, x, y, options) {
+        // 마우스 업 시에도 아무것도 하지 않음 (mouseDown에서 처리 완료)
+    }
+}
+
+class EyedropperTool extends DrawingTool {
+    onMouseDown(ctx, x, y, options) {
+        // 캔버스에서 픽셀 색상 가져오기
+        const pixelData = ctx.getImageData(
+            Math.floor(x),
+            Math.floor(y),
+            1,
+            1
+        ).data;
+
+        const r = pixelData[0];
+        const g = pixelData[1];
+        const b = pixelData[2];
+
+        // RGB를 HEX로 변환
+        const hexColor = this.rgbToHex(r, g, b);
+
+        // 전경색으로 설정 (ToolbarManager 업데이트)
+        this.updateForegroundColor(hexColor);
+    }
+
+    onMouseMove(ctx, x, y, options) {
+        // 마우스 이동 시 커서 변경 등 (선택사항)
+    }
+
+    onMouseUp(ctx, x, y, options) {
+        // 아무것도 하지 않음
+    }
+
+    rgbToHex(r, g, b) {
+        const toHex = (n) => {
+            const hex = Math.max(0, Math.min(255, n)).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        return '#' + toHex(r) + toHex(g) + toHex(b);
+    }
+
+    updateForegroundColor(color) {
+        // ToolbarManager의 전경색 업데이트
+        if (window.toolbarManager) {
+            window.toolbarManager.fgColor = color;
+            window.toolbarManager.color = color;  // 하위 호환성
+            const fgSwatch = document.getElementById('fgColorSwatch');
+            const fgPicker = document.getElementById('fgColorPicker');
+            if (fgSwatch) fgSwatch.style.backgroundColor = color;
+            if (fgPicker) fgPicker.value = color;
+        }
+    }
+}
+
+class FreeSelectTool extends DrawingTool {
+    constructor() {
+        super();
+        this.points = [];
+        this.isDrawing = false;
+    }
+
+    onMouseDown(ctx, x, y, options, event) {
+        this.isDrawing = true;
+        this.points = [{ x, y }];
+
+        // Shift/Ctrl/Cmd 키 확인 (멀티 선택)
+        this.isMultiSelect = event && (event.shiftKey || event.ctrlKey || event.metaKey);
+
+        if (!this.isMultiSelect && this.objectManager) {
+            this.objectManager.deselectAll();
+        }
+
+        if (this.objectManager) {
+            this.objectManager.renderAll(ctx);
+            this.drawPath(ctx, options);
+        }
+    }
+
+    onMouseMove(ctx, x, y, options) {
+        if (!this.isDrawing || !this.objectManager) return;
+
+        this.points.push({ x, y });
+
+        // 전체 다시 그리고 경로 그리기
+        this.objectManager.renderAll(ctx);
+        this.drawPath(ctx, options);
+    }
+
+    onMouseUp(ctx, x, y, options) {
+        if (!this.isDrawing || !this.objectManager) return;
+
+        this.isDrawing = false;
+
+        // 경로 닫기 (마지막 점과 첫 점 연결)
+        if (this.points.length > 2) {
+            this.points.push(this.points[0]);
+
+            // 경로 내부의 객체 선택
+            this.selectObjectsInsidePath();
+        }
+
+        this.points = [];
+        this.objectManager.renderAll(ctx);
+    }
+
+    drawPath(ctx, options) {
+        if (this.points.length < 2) return;
+
+        ctx.save();
+        ctx.strokeStyle = '#0066ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.globalAlpha = 0.8;
+
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+
+        for (let i = 1; i < this.points.length; i++) {
+            ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+
+        // 현재 마우스 위치까지 점선 연결
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    selectObjectsInsidePath() {
+        // 모든 객체를 순회하며 경로 내부에 있는지 확인
+        const allObjects = this.objectManager.objects;
+
+        allObjects.forEach(obj => {
+            // 객체의 중심점이 경로 내부에 있는지 확인
+            const centerX = obj.bounds.x + obj.bounds.width / 2;
+            const centerY = obj.bounds.y + obj.bounds.height / 2;
+
+            if (this.isPointInPolygon(centerX, centerY, this.points)) {
+                this.objectManager.selectObject(obj.id, true);
+            }
+        });
+    }
+
+    // Ray casting algorithm: 점이 다각형 내부에 있는지 확인
+    isPointInPolygon(x, y, polygon) {
+        let inside = false;
+
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i].x, yi = polygon[i].y;
+            const xj = polygon[j].x, yj = polygon[j].y;
+
+            const intersect = ((yi > y) !== (yj > y))
+                && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+
+            if (intersect) inside = !inside;
+        }
+
+        return inside;
+    }
 }

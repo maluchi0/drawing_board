@@ -160,3 +160,243 @@
 .action-btn-small:active {
     transform: scale(0.95);
 }
+
+/* Foreground/Background Color 스와치 스타일 */
+.color-swatch-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.color-swatch-wrapper {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+}
+
+/* 배경색 사각형 (뒤쪽, 오른쪽 아래) */
+.color-swatch-bg {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 32px;
+    height: 32px;
+    border: 2px solid #333;
+    border-radius: 3px;
+    background-color: #ffffff;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+/* 전경색 사각형 (앞쪽, 왼쪽 위) */
+.color-swatch-fg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 32px;
+    height: 32px;
+    border: 2px solid #333;
+    border-radius: 3px;
+    background-color: #000000;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    z-index: 1;
+}
+
+/* 전경색이 활성화된 상태 */
+.color-swatch-fg.active {
+    border-color: #007bff;
+    border-width: 3px;
+}
+
+.color-swatch-bg.active {
+    border-color: #007bff;
+    border-width: 3px;
+    z-index: 2;
+}
+
+.color-reset-btn,
+.color-swap-btn {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.color-reset-btn:hover,
+.color-swap-btn:hover {
+    background-color: #e9ecef;
+    transform: scale(1.1);
+}
+
+.color-reset-btn:active,
+.color-swap-btn:active {
+    transform: scale(0.95);
+}
+
+/* Save/Load 다이얼로그 스타일 */
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 800px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.dialog-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.dialog-close {
+    font-size: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dialog-close:hover {
+    color: #333;
+}
+
+.dialog-body {
+    padding: 20px;
+}
+
+.save-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.save-slot {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.save-slot:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.slot-preview {
+    flex-shrink: 0;
+}
+
+.slot-canvas {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.slot-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.slot-name {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.slot-date {
+    font-size: 12px;
+    color: #666;
+}
+
+.slot-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+}
+
+.slot-save-btn,
+.slot-load-btn,
+.slot-delete-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    background-color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.slot-save-btn {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.slot-save-btn:hover {
+    background-color: #0056b3;
+}
+
+.slot-load-btn:not(:disabled) {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.slot-load-btn:not(:disabled):hover {
+    background-color: #218838;
+}
+
+.slot-delete-btn:not(:disabled) {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.slot-delete-btn:not(:disabled):hover {
+    background-color: #c82333;
+}
+
+.slot-save-btn:disabled,
+.slot-load-btn:disabled,
+.slot-delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

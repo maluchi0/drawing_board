@@ -267,15 +267,25 @@ class ObjectManager {
     }
 
     renderObject(ctx, obj) {
+        // 하위 호환성: 기존 color 속성을 strokeColor로 자동 마이그레이션
+        if (obj.style.color && !obj.style.strokeColor) {
+            obj.style.strokeColor = obj.style.color;
+            // fillColor가 없을 때만 'transparent' 설정 (기존 값이 있으면 유지)
+            if (!obj.style.fillColor) {
+                obj.style.fillColor = 'transparent';
+            }
+            delete obj.style.color;
+        }
+
         ctx.save();
-        ctx.strokeStyle = obj.style.color;
-        ctx.lineWidth = obj.style.lineWidth;
+        ctx.lineWidth = obj.style.lineWidth || 1;
+        ctx.globalAlpha = obj.style.opacity || 1;
         ctx.lineCap = obj.style.lineCap || 'round';
         ctx.lineJoin = obj.style.lineJoin || 'round';
-        ctx.globalAlpha = obj.style.opacity;
 
         switch (obj.type) {
             case 'line':
+                ctx.strokeStyle = obj.style.strokeColor || '#000000';
                 ctx.beginPath();
                 ctx.moveTo(obj.data.startX, obj.data.startY);
                 ctx.lineTo(obj.data.endX, obj.data.endY);
@@ -283,12 +293,41 @@ class ObjectManager {
                 break;
 
             case 'rectangle':
+                // 채우기가 있으면 먼저 채우기
+                if (obj.style.fillColor && obj.style.fillColor !== 'transparent') {
+                    ctx.fillStyle = obj.style.fillColor;
+                    ctx.fillRect(obj.data.x, obj.data.y, obj.data.width, obj.data.height);
+                }
+                // 윤곽선 그리기
+                ctx.strokeStyle = obj.style.strokeColor || '#000000';
                 ctx.strokeRect(obj.data.x, obj.data.y, obj.data.width, obj.data.height);
                 break;
 
             case 'circle':
                 ctx.beginPath();
                 ctx.arc(obj.data.centerX, obj.data.centerY, obj.data.radius, 0, 2 * Math.PI);
+                // 채우기
+                if (obj.style.fillColor && obj.style.fillColor !== 'transparent') {
+                    ctx.fillStyle = obj.style.fillColor;
+                    ctx.fill();
+                }
+                // 윤곽선
+                ctx.strokeStyle = obj.style.strokeColor || '#000000';
+                ctx.stroke();
+                break;
+
+            case 'ellipse':
+                ctx.beginPath();
+                ctx.ellipse(obj.data.centerX, obj.data.centerY,
+                           obj.data.radiusX, obj.data.radiusY,
+                           obj.data.rotation || 0, 0, 2 * Math.PI);
+                // 채우기
+                if (obj.style.fillColor && obj.style.fillColor !== 'transparent') {
+                    ctx.fillStyle = obj.style.fillColor;
+                    ctx.fill();
+                }
+                // 윤곽선
+                ctx.strokeStyle = obj.style.strokeColor || '#000000';
                 ctx.stroke();
                 break;
 
@@ -302,6 +341,7 @@ class ObjectManager {
 
             case 'path':
                 if (obj.data.points.length > 1) {
+                    ctx.strokeStyle = obj.style.strokeColor || '#000000';
                     ctx.beginPath();
                     ctx.moveTo(obj.data.points[0].x, obj.data.points[0].y);
                     for (let i = 1; i < obj.data.points.length; i++) {
@@ -313,8 +353,8 @@ class ObjectManager {
 
             case 'text':
                 ctx.font = `${obj.data.fontSize}px ${obj.data.fontFamily}`;
-                ctx.fillStyle = obj.style.color;
-                ctx.globalAlpha = obj.style.opacity;
+                ctx.fillStyle = obj.style.strokeColor || '#000000';  // 텍스트는 fillStyle 사용
+                ctx.globalAlpha = obj.style.opacity || 1;
                 ctx.textAlign = obj.data.textAlign || 'left';
                 ctx.textBaseline = obj.data.textBaseline || 'alphabetic';
                 ctx.fillText(obj.data.text, obj.data.x, obj.data.y);

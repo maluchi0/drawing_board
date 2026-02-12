@@ -104,7 +104,16 @@ class CanvasManager {
     getDrawingOptions() {
         if (window.toolbarManager) {
             return {
-                color: window.toolbarManager.getCurrentColor(),
+                // 하위 호환성을 위해 color도 제공 (foregroundColor와 동일)
+                color: window.toolbarManager.getForegroundColor ?
+                       window.toolbarManager.getForegroundColor() :
+                       window.toolbarManager.getCurrentColor(),
+                foregroundColor: window.toolbarManager.getForegroundColor ?
+                                window.toolbarManager.getForegroundColor() :
+                                window.toolbarManager.getCurrentColor(),
+                backgroundColor: window.toolbarManager.getBackgroundColor ?
+                                window.toolbarManager.getBackgroundColor() :
+                                '#ffffff',
                 lineWidth: window.toolbarManager.getCurrentLineWidth(),
                 opacity: window.toolbarManager.getCurrentOpacity(),
                 fontSize: window.toolbarManager.getCurrentFontSize(),
@@ -113,7 +122,9 @@ class CanvasManager {
             };
         }
         return {
-            color: '#000000',
+            color: '#000000',  // 하위 호환성
+            foregroundColor: '#000000',
+            backgroundColor: '#ffffff',
             lineWidth: 2,
             opacity: 1.0,
             fontSize: 16,

@@ -92,8 +92,8 @@
                     <input type="color" id="colorPicker" value="#000000">
                 </div>
                 <div class="option-item">
-                    <label for="lineWidth">두께: <span id="lineWidthValue">2</span></label>
-                    <input type="range" id="lineWidth" min="1" max="20" value="2">
+                    <label for="lineWidth">두께: <span id="lineWidthValue">5</span></label>
+                    <input type="range" id="lineWidth" min="1" max="20" value="5">
                 </div>
                 <div class="option-item">
                     <label for="opacity">투명도: <span id="opacityValue">100</span>%</label>
@@ -102,6 +102,15 @@
                 <div class="option-item">
                     <label for="fontSize">폰트: <span id="fontSizeValue">16</span>px</label>
                     <input type="range" id="fontSize" min="12" max="72" value="16">
+                </div>
+                <div class="option-item">
+                    <label>캔버스 크기</label>
+                    <div class="canvas-size-controls">
+                        <input type="number" id="canvasWidth" min="400" max="2400" value="1200" step="50">
+                        <span>×</span>
+                        <input type="number" id="canvasHeight" min="300" max="1600" value="800" step="50">
+                        <button class="action-btn-small" id="resizeCanvasBtn" title="크기 적용">적용</button>
+                    </div>
                 </div>
             </div>
 

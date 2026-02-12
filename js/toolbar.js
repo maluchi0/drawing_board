@@ -14,7 +14,7 @@ class ToolbarManager {
         };
         this.activeTool = 'select';
         this.color = '#000000';
-        this.lineWidth = 2;
+        this.lineWidth = 5;
         this.opacity = 1.0;
         this.fontSize = 16;
         this.pdfExporter = new PDFExporter(canvasManager);
@@ -94,7 +94,7 @@ class ToolbarManager {
 
         const deleteBtn = document.getElementById('deleteBtn');
         deleteBtn.addEventListener('click', () => {
-            this.canvasManager.deleteSelectedObject();
+            this.canvasManager.deleteSelectedObjects();
         });
 
         const pdfBtn = document.getElementById('pdfBtn');
@@ -107,13 +107,48 @@ class ToolbarManager {
             this.shareManager.showShareDialog();
         });
 
+        const resizeCanvasBtn = document.getElementById('resizeCanvasBtn');
+        if (resizeCanvasBtn) {
+            resizeCanvasBtn.addEventListener('click', () => {
+                const widthInput = document.getElementById('canvasWidth');
+                const heightInput = document.getElementById('canvasHeight');
+
+                const width = parseInt(widthInput.value);
+                const height = parseInt(heightInput.value);
+
+                if (isNaN(width) || isNaN(height)) {
+                    alert('유효한 숫자를 입력해주세요.');
+                    return;
+                }
+
+                const result = this.canvasManager.setCustomCanvasSize(width, height);
+
+                // 범위 조정된 경우 알림
+                if (result.width !== width || result.height !== height) {
+                    widthInput.value = result.width;
+                    heightInput.value = result.height;
+                    alert(`크기가 제한 범위로 조정되었습니다.\n${result.width} × ${result.height}px`);
+                }
+            });
+
+            // 초기값 설정
+            const currentSize = this.canvasManager.getCurrentCanvasSize();
+            document.getElementById('canvasWidth').value = currentSize.width;
+            document.getElementById('canvasHeight').value = currentSize.height;
+        }
+
         document.addEventListener('keydown', (e) => {
             const target = e.target;
             const isInputField = target.tagName === 'INPUT' ||
                                  target.tagName === 'TEXTAREA' ||
                                  target.isContentEditable;
 
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                if (!isInputField) {
+                    e.preventDefault();
+                    this.canvasManager.selectAllObjects();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
                 if (!isInputField) {
                     e.preventDefault();
                     this.canvasManager.undo();
@@ -126,7 +161,7 @@ class ToolbarManager {
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
                 if (!isInputField) {
                     e.preventDefault();
-                    this.canvasManager.deleteSelectedObject();
+                    this.canvasManager.deleteSelectedObjects();
                 }
             }
         });

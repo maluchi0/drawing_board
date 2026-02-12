@@ -1,7 +1,7 @@
 class ObjectManager {
     constructor() {
         this.objects = [];
-        this.selectedObjectId = null;
+        this.selectedObjectIds = [];
         this.nextId = 1;
         this.imageCache = new Map();
     }
@@ -18,10 +18,15 @@ class ObjectManager {
         const index = this.objects.findIndex(obj => obj.id === id);
         if (index !== -1) {
             this.objects.splice(index, 1);
-            if (this.selectedObjectId === id) {
-                this.selectedObjectId = null;
+            const selectedIndex = this.selectedObjectIds.indexOf(id);
+            if (selectedIndex !== -1) {
+                this.selectedObjectIds.splice(selectedIndex, 1);
             }
         }
+    }
+
+    removeObjects(ids) {
+        ids.forEach(id => this.removeObject(id));
     }
 
     getObjectAt(x, y) {
@@ -49,6 +54,8 @@ class ObjectManager {
                 return true;
             case 'circle':
                 return this.hitTestCircle(obj, x, y);
+            case 'ellipse':
+                return this.hitTestEllipse(obj, x, y);
             case 'path':
                 return this.hitTestPath(obj, x, y);
             default:
@@ -68,6 +75,16 @@ class ObjectManager {
         const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
         const lineWidth = obj.style.lineWidth;
         return Math.abs(distance - radius) <= lineWidth / 2 + 5;
+    }
+
+    hitTestEllipse(obj, x, y) {
+        const { centerX, centerY, radiusX, radiusY } = obj.data;
+        // 타원 방정식: ((x-cx)/rx)^2 + ((y-cy)/ry)^2 = 1
+        // 경계선 근처 클릭 감지
+        const normalizedDistance = Math.pow((x - centerX) / radiusX, 2) + Math.pow((y - centerY) / radiusY, 2);
+        const lineWidth = obj.style.lineWidth;
+        const threshold = lineWidth / Math.min(radiusX, radiusY) + 0.1;
+        return Math.abs(Math.sqrt(normalizedDistance) - 1) <= threshold;
     }
 
     hitTestPath(obj, x, y) {
@@ -119,22 +136,56 @@ class ObjectManager {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    selectObject(id) {
-        this.deselectAll();
-        const obj = this.objects.find(o => o.id === id);
-        if (obj) {
-            obj.selected = true;
-            this.selectedObjectId = id;
+    selectObject(id, addToSelection = false) {
+        if (!addToSelection) {
+            this.deselectAll();
         }
+        const obj = this.objects.find(o => o.id === id);
+        if (obj && !obj.selected) {
+            obj.selected = true;
+            this.selectedObjectIds.push(id);
+        }
+    }
+
+    toggleSelection(id) {
+        const obj = this.objects.find(o => o.id === id);
+        if (!obj) return;
+
+        if (obj.selected) {
+            obj.selected = false;
+            const index = this.selectedObjectIds.indexOf(id);
+            if (index !== -1) {
+                this.selectedObjectIds.splice(index, 1);
+            }
+        } else {
+            obj.selected = true;
+            this.selectedObjectIds.push(id);
+        }
+    }
+
+    selectAll() {
+        this.deselectAll();
+        this.objects.forEach(obj => {
+            obj.selected = true;
+            this.selectedObjectIds.push(obj.id);
+        });
     }
 
     deselectAll() {
         this.objects.forEach(obj => obj.selected = false);
-        this.selectedObjectId = null;
+        this.selectedObjectIds = [];
     }
 
     getSelectedObject() {
-        return this.objects.find(obj => obj.id === this.selectedObjectId);
+        // 하위 호환성을 위한 메서드: 첫 번째 선택된 객체 반환
+        if (this.selectedObjectIds.length > 0) {
+            return this.objects.find(obj => obj.id === this.selectedObjectIds[0]);
+        }
+        return null;
+    }
+
+    getSelectedObjects() {
+        return this.objects.filter(obj => this.selectedObjectIds.includes(obj.id));
     }
 
     moveObject(id, dx, dy) {
@@ -153,6 +204,10 @@ class ObjectManager {
                 obj.data.y += dy;
                 break;
             case 'circle':
+                obj.data.centerX += dx;
+                obj.data.centerY += dy;
+                break;
+            case 'ellipse':
                 obj.data.centerX += dx;
                 obj.data.centerY += dy;
                 break;
@@ -176,6 +231,26 @@ class ObjectManager {
         obj.bounds.y += dy;
     }
 
+    moveObjects(ids, dx, dy) {
+        ids.forEach(id => this.moveObject(id, dx, dy));
+    }
+
+    getObjectsInRect(x1, y1, x2, y2) {
+        // 드래그 영역과 겹치는 모든 객체 반환 (부분선택)
+        const results = [];
+        for (const obj of this.objects) {
+            const bounds = obj.bounds;
+            // 사각형 교차 검사
+            if (!(bounds.x + bounds.width < x1 ||
+                  bounds.x > x2 ||
+                  bounds.y + bounds.height < y1 ||
+                  bounds.y > y2)) {
+                results.push(obj);
+            }
+        }
+        return results;
+    }
+
     renderAll(ctx) {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -184,10 +259,11 @@ class ObjectManager {
             this.renderObject(ctx, obj);
         });
 
-        const selected = this.getSelectedObject();
-        if (selected) {
-            this.drawSelectionBox(ctx, selected);
-        }
+        // 선택된 모든 객체에 대해 선택 박스 그리기
+        const selectedObjects = this.getSelectedObjects();
+        selectedObjects.forEach(obj => {
+            this.drawSelectionBox(ctx, obj);
+        });
     }
 
     renderObject(ctx, obj) {
@@ -213,6 +289,14 @@ class ObjectManager {
             case 'circle':
                 ctx.beginPath();
                 ctx.arc(obj.data.centerX, obj.data.centerY, obj.data.radius, 0, 2 * Math.PI);
+                ctx.stroke();
+                break;
+
+            case 'ellipse':
+                ctx.beginPath();
+                ctx.ellipse(obj.data.centerX, obj.data.centerY,
+                           obj.data.radiusX, obj.data.radiusY,
+                           obj.data.rotation || 0, 0, 2 * Math.PI);
                 ctx.stroke();
                 break;
 
@@ -318,12 +402,12 @@ class ObjectManager {
     setState(state) {
         this.objects = JSON.parse(JSON.stringify(state.objects));
         this.nextId = state.nextId;
-        this.selectedObjectId = null;
+        this.selectedObjectIds = [];
     }
 
     clear() {
         this.objects = [];
-        this.selectedObjectId = null;
+        this.selectedObjectIds = [];
         this.nextId = 1;
     }
 }

@@ -9,9 +9,9 @@ class DrawingTool {
         this.objectManager = objectManager;
     }
 
-    onMouseDown(ctx, x, y, options) {}
-    onMouseMove(ctx, x, y, options) {}
-    onMouseUp(ctx, x, y, options) {}
+    onMouseDown(ctx, x, y, options, event) {}
+    onMouseMove(ctx, x, y, options, event) {}
+    onMouseUp(ctx, x, y, options, event) {}
     setOptions(options) {}
 }
 
@@ -271,60 +271,127 @@ class CircleTool extends DrawingTool {
         this.isDrawing = false;
     }
 
-    onMouseDown(ctx, x, y, options) {
+    onMouseDown(ctx, x, y, options, event) {
         this.isDrawing = true;
         this.startX = x;
         this.startY = y;
     }
 
-    onMouseMove(ctx, x, y, options) {
+    onMouseMove(ctx, x, y, options, event) {
         if (!this.isDrawing || !this.objectManager) return;
 
         this.objectManager.renderAll(ctx);
 
-        const radius = Math.sqrt(Math.pow(x - this.startX, 2) + Math.pow(y - this.startY, 2));
+        const isEllipseMode = event && (event.shiftKey || event.altKey);
 
         ctx.save();
         ctx.strokeStyle = options.color;
         ctx.lineWidth = options.lineWidth;
         ctx.globalAlpha = options.opacity;
         ctx.beginPath();
-        ctx.arc(this.startX, this.startY, radius, 0, 2 * Math.PI);
+
+        if (isEllipseMode) {
+            // 타원 그리기: 시작점과 현재점으로 만들어지는 사각형에 내접
+            const width = Math.abs(x - this.startX);
+            const height = Math.abs(y - this.startY);
+            const centerX = (this.startX + x) / 2;
+            const centerY = (this.startY + y) / 2;
+            const radiusX = width / 2;
+            const radiusY = height / 2;
+
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        } else {
+            // 원 그리기: 시작점과 현재점으로 만들어지는 사각형에 내접하는 정원
+            const width = Math.abs(x - this.startX);
+            const height = Math.abs(y - this.startY);
+            const size = Math.max(width, height);
+            const centerX = this.startX + (x > this.startX ? size : -size) / 2;
+            const centerY = this.startY + (y > this.startY ? size : -size) / 2;
+            const radius = size / 2;
+
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        }
+
         ctx.stroke();
         ctx.restore();
     }
 
-    onMouseUp(ctx, x, y, options) {
+    onMouseUp(ctx, x, y, options, event) {
         if (!this.isDrawing) return;
 
         this.isDrawing = false;
 
         if (this.objectManager) {
-            const radius = Math.sqrt(Math.pow(x - this.startX, 2) + Math.pow(y - this.startY, 2));
+            const isEllipseMode = event && (event.shiftKey || event.altKey);
 
-            if (radius > 0) {
-                const object = {
-                    type: 'circle',
-                    data: {
-                        centerX: this.startX,
-                        centerY: this.startY,
-                        radius: radius
-                    },
-                    style: {
-                        color: options.color,
-                        lineWidth: options.lineWidth,
-                        opacity: options.opacity
-                    },
-                    bounds: {
-                        x: this.startX - radius - options.lineWidth / 2,
-                        y: this.startY - radius - options.lineWidth / 2,
-                        width: radius * 2 + options.lineWidth,
-                        height: radius * 2 + options.lineWidth
-                    }
-                };
+            if (isEllipseMode) {
+                // 타원 객체 생성
+                const width = Math.abs(x - this.startX);
+                const height = Math.abs(y - this.startY);
+                const centerX = (this.startX + x) / 2;
+                const centerY = (this.startY + y) / 2;
+                const radiusX = width / 2;
+                const radiusY = height / 2;
 
-                this.objectManager.addObject(object);
-                this.objectManager.renderAll(ctx);
+                if (radiusX > 0 && radiusY > 0) {
+                    const object = {
+                        type: 'ellipse',
+                        data: {
+                            centerX: centerX,
+                            centerY: centerY,
+                            radiusX: radiusX,
+                            radiusY: radiusY,
+                            rotation: 0
+                        },
+                        style: {
+                            color: options.color,
+                            lineWidth: options.lineWidth,
+                            opacity: options.opacity
+                        },
+                        bounds: {
+                            x: centerX - radiusX - options.lineWidth / 2,
+                            y: centerY - radiusY - options.lineWidth / 2,
+                            width: radiusX * 2 + options.lineWidth,
+                            height: radiusY * 2 + options.lineWidth
+                        }
+                    };
+
+                    this.objectManager.addObject(object);
+                    this.objectManager.renderAll(ctx);
+                }
+            } else {
+                // 원 객체 생성
+                const width = Math.abs(x - this.startX);
+                const height = Math.abs(y - this.startY);
+                const size = Math.max(width, height);
+                const centerX = this.startX + (x > this.startX ? size : -size) / 2;
+                const centerY = this.startY + (y > this.startY ? size : -size) / 2;
+                const radius = size / 2;
+
+                if (radius > 0) {
+                    const object = {
+                        type: 'circle',
+                        data: {
+                            centerX: centerX,
+                            centerY: centerY,
+                            radius: radius
+                        },
+                        style: {
+                            color: options.color,
+                            lineWidth: options.lineWidth,
+                            opacity: options.opacity
+                        },
+                        bounds: {
+                            x: centerX - radius - options.lineWidth / 2,
+                            y: centerY - radius - options.lineWidth / 2,
+                            width: radius * 2 + options.lineWidth,
+                            height: radius * 2 + options.lineWidth
+                        }
+                    };
+
+                    this.objectManager.addObject(object);
+                    this.objectManager.renderAll(ctx);
+                }
             }
         }
     }
@@ -398,46 +465,105 @@ class FillTool extends DrawingTool {
 class SelectTool extends DrawingTool {
     constructor() {
         super();
-        this.isDragging = false;
+        this.mode = 'none';  // 'none', 'drag_move', 'drag_select'
         this.lastX = 0;
         this.lastY = 0;
-        this.selectedObject = null;
     }
 
-    onMouseDown(ctx, x, y, options) {
+    onMouseDown(ctx, x, y, options, event) {
         if (!this.objectManager) return;
 
+        const isMultiSelect = event && (event.shiftKey || event.ctrlKey || event.metaKey);
         const obj = this.objectManager.getObjectAt(x, y);
 
         if (obj) {
-            this.objectManager.selectObject(obj.id);
-            this.selectedObject = obj;
-            this.isDragging = true;
-            this.lastX = x;
-            this.lastY = y;
+            // 객체 클릭: 선택 및 이동 모드
+            if (isMultiSelect) {
+                this.objectManager.toggleSelection(obj.id);
+            } else {
+                if (!this.objectManager.selectedObjectIds.includes(obj.id)) {
+                    this.objectManager.selectObject(obj.id, false);
+                }
+            }
+            this.mode = 'drag_move';
         } else {
-            this.objectManager.deselectAll();
-            this.selectedObject = null;
+            // 빈 곳 클릭: 영역 선택 모드
+            if (!isMultiSelect) {
+                this.objectManager.deselectAll();
+            }
+            this.mode = 'drag_select';
         }
+
+        this.startX = x;
+        this.startY = y;
+        this.lastX = x;
+        this.lastY = y;
 
         this.objectManager.renderAll(ctx);
     }
 
-    onMouseMove(ctx, x, y, options) {
-        if (!this.isDragging || !this.selectedObject || !this.objectManager) return;
+    onMouseMove(ctx, x, y, options, event) {
+        if (!this.objectManager) return;
 
-        const dx = x - this.lastX;
-        const dy = y - this.lastY;
-
-        this.objectManager.moveObject(this.selectedObject.id, dx, dy);
-        this.objectManager.renderAll(ctx);
+        if (this.mode === 'drag_move') {
+            // 선택된 객체 이동
+            const dx = x - this.lastX;
+            const dy = y - this.lastY;
+            this.objectManager.moveObjects(
+                this.objectManager.selectedObjectIds, dx, dy
+            );
+            this.objectManager.renderAll(ctx);
+        } else if (this.mode === 'drag_select') {
+            // 선택 영역 표시
+            this.objectManager.renderAll(ctx);
+            ctx.save();
+            ctx.strokeStyle = '#0066ff';
+            ctx.fillStyle = 'rgba(0, 102, 255, 0.1)';
+            ctx.setLineDash([5, 5]);
+            ctx.globalAlpha = 1;
+            const width = x - this.startX;
+            const height = y - this.startY;
+            ctx.fillRect(this.startX, this.startY, width, height);
+            ctx.strokeRect(this.startX, this.startY, width, height);
+            ctx.restore();
+        }
 
         this.lastX = x;
         this.lastY = y;
     }
 
-    onMouseUp(ctx, x, y, options) {
-        this.isDragging = false;
+    onMouseUp(ctx, x, y, options, event) {
+        if (!this.objectManager) return;
+
+        if (this.mode === 'drag_select') {
+            // 드래그 영역 내 객체 선택 (부분선택)
+            const isMultiSelect = event && (event.shiftKey || event.ctrlKey || event.metaKey);
+
+            const x1 = Math.min(this.startX, x);
+            const y1 = Math.min(this.startY, y);
+            const x2 = Math.max(this.startX, x);
+            const y2 = Math.max(this.startY, y);
+
+            const objectsInRect = this.objectManager.getObjectsInRect(
+                x1, y1, x2, y2
+            );
+
+            if (isMultiSelect) {
+                // 기존 선택에 추가
+                objectsInRect.forEach(obj => {
+                    this.objectManager.selectObject(obj.id, true);
+                });
+            } else {
+                // 기존 선택 해제 후 새로 선택
+                this.objectManager.deselectAll();
+                objectsInRect.forEach(obj => {
+                    this.objectManager.selectObject(obj.id, true);
+                });
+            }
+        }
+
+        this.mode = 'none';
+        this.objectManager.renderAll(ctx);
     }
 }
 
@@ -486,7 +612,7 @@ class TextTool extends DrawingTool {
         this.inputElement.style.outline = 'none';
         this.inputElement.style.background = 'rgba(255, 255, 255, 0.9)';
         this.inputElement.style.padding = '2px 4px';
-        this.inputElement.style.minWidth = '100px';
+        this.inputElement.style.minWidth = '200px';
         this.inputElement.style.fontFamily = 'Arial, "Malgun Gothic", "맑은 고딕", sans-serif';
         this.inputElement.style.zIndex = '1000';
         this.inputElement.style.pointerEvents = 'auto';

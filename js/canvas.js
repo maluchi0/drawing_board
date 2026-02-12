@@ -70,7 +70,7 @@ class CanvasManager {
         const coords = Utils.getCanvasCoordinates(this.canvas, event);
         const options = this.getDrawingOptions();
 
-        this.currentTool.onMouseDown(this.ctx, coords.x, coords.y, options);
+        this.currentTool.onMouseDown(this.ctx, coords.x, coords.y, options, event);
     }
 
     handleMouseMove(event) {
@@ -79,7 +79,7 @@ class CanvasManager {
         const coords = Utils.getCanvasCoordinates(this.canvas, event);
         const options = this.getDrawingOptions();
 
-        this.currentTool.onMouseMove(this.ctx, coords.x, coords.y, options);
+        this.currentTool.onMouseMove(this.ctx, coords.x, coords.y, options, event);
     }
 
     handleMouseUp(event) {
@@ -88,7 +88,7 @@ class CanvasManager {
         const coords = Utils.getCanvasCoordinates(this.canvas, event);
         const options = this.getDrawingOptions();
 
-        this.currentTool.onMouseUp(this.ctx, coords.x, coords.y, options);
+        this.currentTool.onMouseUp(this.ctx, coords.x, coords.y, options, event);
         this.isDrawing = false;
 
         this.objectManager.renderAll(this.ctx);
@@ -185,12 +185,46 @@ class CanvasManager {
     }
 
     deleteSelectedObject() {
-        const selected = this.objectManager.getSelectedObject();
-        if (selected) {
-            this.objectManager.removeObject(selected.id);
+        // 하위 호환성을 위해 유지
+        this.deleteSelectedObjects();
+    }
+
+    deleteSelectedObjects() {
+        const selectedIds = [...this.objectManager.selectedObjectIds];
+        if (selectedIds.length > 0) {
+            this.objectManager.removeObjects(selectedIds);
             this.objectManager.renderAll(this.ctx);
             this.saveState();
         }
+    }
+
+    selectAllObjects() {
+        this.objectManager.selectAll();
+        this.objectManager.renderAll(this.ctx);
+    }
+
+    setCustomCanvasSize(width, height) {
+        // 범위 검증
+        const validWidth = Math.max(400, Math.min(2400, width));
+        const validHeight = Math.max(300, Math.min(1600, height));
+
+        // 기존 객체 데이터 보존 (ObjectManager에 저장됨)
+        this.canvas.width = validWidth;
+        this.canvas.height = validHeight;
+
+        // 재렌더링
+        this.ctx.fillStyle = 'white';
+        this.ctx.fillRect(0, 0, validWidth, validHeight);
+        this.objectManager.renderAll(this.ctx);
+
+        return { width: validWidth, height: validHeight };
+    }
+
+    getCurrentCanvasSize() {
+        return {
+            width: this.canvas.width,
+            height: this.canvas.height
+        };
     }
 
     exportImage(filename = 'drawing.png') {
